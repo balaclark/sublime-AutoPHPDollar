@@ -22,13 +22,13 @@ import re
 
 import sublime
 import sublime_plugin
-from sets import Set
 
-
+sublime_version = int(sublime.version())
 settings = sublime.load_settings('AutoPHPDollar.sublime-settings')
 ignore_names = settings.get("ignore names", [])
 rules = settings.get("rules", [])
 ignore_after = settings.get("ignore after", [])
+
 
 def get_patterns(view):
     return rules + [
@@ -59,7 +59,7 @@ def in_list(region, list):
 
 def find_variables(view):
     #find all php variables in current view
-    variables = Set()
+    variables = set()
     regions = view.find_all("\$\w[\w\d]*")
 
     for region in regions:
@@ -97,49 +97,63 @@ def apply_patterns(text, patterns):
     return text
 
 
+def auto_dollar(view):
+    if syntax_name(view) == "PHP":
+        #avoid heavy calculations for "hold delete/backspace and wait"
+        action = view.command_history(0, True)[0]
+        if action == "left_delete" or action == "right_delete":
+            return
+
+        #do not change text again if undo requested
+        if view.command_history(1, True)[0] == "replace":
+            return
+
+        #generate patterns
+        #worst way, first point to optimize
+        patterns = get_patterns(view)
+
+        #get list of <? .. ?> segments
+        php_regions = view.find_all(r"<\?[\w\W]+?(\?>|\z)")
+
+        #get list of commented regions
+        comments = view.find_all(r"(#|//).+|/\*[\w\W]+?\*/")
+
+        #strings should be modified in the reversed order
+        #to keep upper regions positions correct
+        selection = view.sel()
+        for i in range(len(selection) - 1, -1, -1):
+            #do not make changes inside comments
+            if len(comments) and in_list(selection[i], comments):
+                continue
+            #do not make any changes outside <? ... ?> segments
+            if not in_list(selection[i], php_regions):
+                continue
+            line = view.line(selection[i])
+            #fix line position, do not place cursor to the end of line
+            to_cursor = sublime.Region(line.a, selection[i].b)
+
+            text = view.substr(to_cursor)
+            corrected = apply_patterns(text, patterns)
+
+            if corrected != text:
+                args = {
+                    "a": to_cursor.a,
+                    "b": to_cursor.b,
+                    "text": corrected
+                }
+                view.run_command('replace', args)
+
+
+class ReplaceCommand(sublime_plugin.TextCommand):
+    def run(self, edit, a, b, text):
+        self.view.replace(edit, sublime.Region(a, b), text)
+
+
 class CphpListener(sublime_plugin.EventListener):
     def on_modified(self, view):
-        if syntax_name(view) == "PHP":
-            # avoid heavy calculations for "hold delete/backspace and wait"
-            action = view.command_history(0, True)[0]
-            if action == "left_delete" or action == "right_delete":
-                return
-            #do not change text again if undo requested
-            if view.command_history(1, True)[0] == "cphp":
-                return
+        #only use this non-async method for older sublime versions
+        if sublime_version < 3000:
+            auto_dollar(view)
 
-            #generate patterns
-            #worst way, first point to optimize
-            patterns = get_patterns(view)
-
-            #get list of <? .. ?> segments
-            php_regions = view.find_all(r"<\?[\w\W]+?(\?>|\z)")
-
-            #get list of commented regions
-            comments = view.find_all(r"(#|//).+|/\*[\w\W]+?\*/")
-
-            #strings should be modified in the reversed order
-            #to keep upper regions positions correct
-            edit = None
-            selection = view.sel()
-            for i in range(len(selection) - 1, -1, -1):
-                #do not make changes inside comments
-                if len(comments) and in_list(selection[i], comments):
-                    continue
-                #do not make any changes outside <? ... ?> segments
-                if not in_list(selection[i], php_regions):
-                    continue
-                line = view.line(selection[i])
-                #fix line position, do not place cursor to the end of line
-                to_cursor = sublime.Region(line.a, selection[i].b)
-
-                text = view.substr(to_cursor)
-                corrected = apply_patterns(text, patterns)
-
-                if corrected != text:
-                    if edit == None:
-                        edit = view.begin_edit("cphp")
-                    view.replace(edit, to_cursor, corrected)
-
-            if edit != None:
-                view.end_edit(edit)
+    def on_modified_async(self, view):
+        auto_dollar(view)
