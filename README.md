@@ -1,20 +1,21 @@
 ## Synopsis
 
-This is a [Sublime Text 2](http://www.sublimetext.com/2) plugin.
+This is a [Sublime Text 2/3](http://www.sublimetext.com) plugin.
 
 **Add "$" symbol before PHP variable name**
 
-AutoPHPDollar automatically insters "$" character before variables.
-Type the variable name without "$", and this plugin add it.
+AutoPHPDollar automatically inserts a "$" character before variables.
+Type the variable name without a "$", and this plugin will add it.
 
 ## Installation
 
-Go to your `Packages` subdirectory under ST2's data directory:
+Go to your `Packages` subdirectory under ST's data directory (replace <ST version>
+with "2" or "3" depending on what version of ST you are using):
 
-* Windows: `%APPDATA%\Sublime Text 2`
-* OS X: `~/Library/Application Support/Sublime Text 2/Packages`
-* Linux: `~/.config/sublime-text-2`
-* Portable Installation: `Sublime Text 2/Data`
+* Windows: `%APPDATA%\Sublime Text <ST version>`
+* OS X: `~/Library/Application Support/Sublime Text <ST version>/Packages`
+* Linux: `~/.config/sublime-text-<ST version>`
+* Portable Installation: `Sublime Text <ST version>/Data`
 
 Then clone this repository:
 
