@@ -9,7 +9,7 @@ Type the variable name without a "$", and this plugin will add it.
 
 ## Installation
 
-Go to your `Packages` subdirectory under ST's data directory (replace <ST version>
+Go to your `Packages` subdirectory under ST's data directory (replace `<ST version>`
 with "2" or "3" depending on what version of ST you are using):
 
 * Windows: `%APPDATA%\Sublime Text <ST version>`
